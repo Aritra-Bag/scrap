@@ -1,0 +1,13 @@
+# Dependency directories
+/node_modules
+# production
+/build
+.env
+/.env.local
+/.env.production
+/.env.production.local
+/.env.test
+/.env.test.local
+/.env.development
+/.env.development.local
+/.env
