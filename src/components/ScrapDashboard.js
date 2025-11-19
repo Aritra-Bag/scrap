@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
+import { ThemeContext } from '../App';
 
 // Set Chart.js defaults for dark mode
 Chart.defaults.color = '#cbd5e1';
@@ -143,6 +144,7 @@ function updateKpis(data, setKpis) {
 }
 
 function ScrapDashboard({ sheetUrls, title, config }) {
+  const { isDarkMode } = React.useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState('BOTH');
   const [currentDateRange, setCurrentDateRange] = useState('default');
@@ -170,6 +172,25 @@ function ScrapDashboard({ sheetUrls, title, config }) {
     setFilteredData(filtered);
     updateKpis(filtered, setKpis);
   }, [currentView, currentDateRange, data]);
+
+  // Update Chart.js theme
+  useEffect(() => {
+    if (isDarkMode) {
+      Chart.defaults.color = '#cbd5e1';
+      Chart.defaults.borderColor = '#374151';
+      Chart.defaults.plugins.tooltip.backgroundColor = 'rgb(17, 24, 39)';
+      Chart.defaults.plugins.tooltip.titleColor = 'rgb(255, 255, 255)';
+      Chart.defaults.plugins.tooltip.bodyColor = 'rgb(209, 213, 219)';
+      Chart.defaults.plugins.tooltip.borderColor = 'rgb(75, 85, 99)';
+    } else {
+      Chart.defaults.color = '#334155';
+      Chart.defaults.borderColor = '#cbd5e1';
+      Chart.defaults.plugins.tooltip.backgroundColor = 'rgb(255, 255, 255)';
+      Chart.defaults.plugins.tooltip.titleColor = 'rgb(15, 23, 42)';
+      Chart.defaults.plugins.tooltip.bodyColor = 'rgb(51, 65, 85)';
+      Chart.defaults.plugins.tooltip.borderColor = 'rgb(203, 213, 225)';
+    }
+  }, [isDarkMode]);
 
   const handleViewChange = (view) => {
     setCurrentView(view);
@@ -291,6 +312,17 @@ function ScrapDashboard({ sheetUrls, title, config }) {
     }]
   };
 
+  const gridColor = isDarkMode ? '#374151' : '#e2e8f0';
+
+  const getPlantName = (plant) => {
+    switch (plant) {
+      case 'BOTH': return 'Both Plants';
+      case 'RML1': return 'RML 1';
+      case 'RML6': return 'RML 6';
+      default: return plant;
+    }
+  };
+
   if (loading) {
     return (
       <div id="loading-overlay">
@@ -303,19 +335,19 @@ function ScrapDashboard({ sheetUrls, title, config }) {
   }
 
   return (
-    <div className="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 antialiased">
+    <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-4 md:p-8 antialiased">
       <div className="max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white mb-4 md:mb-0">{title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">{title}</h1>
         </header>
 
         <main>
           <section className="mb-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
-                <label htmlFor="date-range" className="text-sm font-medium text-gray-400">Date Range:</label>
+                <label htmlFor="date-range" className="text-sm font-medium text-gray-600 dark:text-gray-400">Date Range:</label>
                 <select id="date-range" value={currentDateRange} onChange={handleDateRangeChange}
-                  className="bg-gray-700 text-white text-sm rounded-lg border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+                  className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 block p-2">
                   <option value="default">Default</option>
                   <option value="today">Today</option>
                   <option value="last7">Last 7 Days</option>
@@ -324,23 +356,49 @@ function ScrapDashboard({ sheetUrls, title, config }) {
               </div>
 
               <div id="plant-switcher" className="ml-auto">
-                <div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg">
-                  <button id="btn-both" className={`plant-btn px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 text-gray-200 hover:bg-gray-700 ${currentView === 'BOTH' ? 'btn-active' : ''}`} onClick={() => handleViewChange('BOTH')}>
-                    Both Plants
-                  </button>
-                  <button id="btn-rml1" className={`plant-btn px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 text-gray-200 hover:bg-gray-700 ${currentView === 'RML1' ? 'btn-active' : ''}`} onClick={() => handleViewChange('RML1')}>
-                    RML 1
-                  </button>
-                  <button id="btn-rml6" className={`plant-btn px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 text-gray-200 hover:bg-gray-700 ${currentView === 'RML6' ? 'btn-active' : ''}`} onClick={() => handleViewChange('RML6')}>
-                    RML 6
-                  </button>
+                <div
+                  className="relative flex items-center bg-gray-200 dark:bg-gray-800 rounded-lg p-1 overflow-hidden"
+                  role="tablist"
+                  aria-label="Plant switcher"
+                  style={{ minWidth: 320 }} // ensures 3 items fit on one line; adjust/remove as needed
+                >
+                  {/* Indigo sliding indicator (behind buttons) */}
+                  <div
+                    className="absolute top-0 left-0 h-full bg-indigo-600 rounded-md shadow-lg transition-transform duration-300 ease-in-out z-0"
+                    style={{
+                      transform: `translateX(${['BOTH', 'RML1', 'RML6'].indexOf(currentView) * 100}%)`,
+                      width: 'calc(100% / 3)',
+                    }}
+                    aria-hidden="true"
+                  />
+
+                  {/* Buttons (above the slider) */}
+                  <div className="relative z-10 flex w-full">
+                    {['BOTH', 'RML1', 'RML6'].map((plant) => {
+                      const active = currentView === plant;
+                      return (
+                        <button
+                          key={plant}
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => handleViewChange(plant)}
+                          className="relative z-10 px-3 py-2 text-sm font-medium text-center whitespace-nowrap transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/40"
+                          style={{ width: 'calc(100% / 3)' }}
+                        >
+                          <span className={`${active ? 'text-white' : 'text-black dark:text-white'}`}>
+                            {getPlantName(plant)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-amber-500">
+            <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-amber-500">
               <div className="bg-amber-500 p-3 rounded-full">
                 <svg className="w-6 h-6 text-white" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth="4">
                   <g>
@@ -362,36 +420,36 @@ function ScrapDashboard({ sheetUrls, title, config }) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-400">Total Scrap Generated (T)</p>
-                <p className="text-3xl font-bold text-white">{kpis.totalGen.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Scrap Generated (T)</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpis.totalGen.toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-red-600">
+            <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-red-600">
               <div className="bg-red-600 p-3 rounded-full">
                 <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-400">Average Generation %</p>
-                <p className="text-3xl font-bold text-white">{kpis.avgPct.toFixed(2)}%</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Generation %</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpis.avgPct.toFixed(2)}%</p>
               </div>
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-green-600">
+            <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-green-600">
               <div className="bg-green-600 p-3 rounded-full">
                 <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 36 36" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M30 12h-4V7a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h1V8h20v13.49A4.45 4.45 0 0 0 21.25 24h-6.82a4.5 4.5 0 1 0-4.17 2.76A4.38 4.38 0 0 0 14.72 26H21a4.48 4.48 0 0 0 8.91 0H34V16a4 4 0 0 0-4-4zm-19.74 16a2.38 2.38 0 1 1 0-4.75 2.38 2.38 0 1 1 0 4.75zm15.16 0a2.38 2.38 0 1 1 2.5-2.37 2.44 2.44 0 0 1-2.5 2.37zM32 17h-6v-3h4a2 2 0 0 1 2 2z"/>
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-400">Total Dispatch to Client (T)</p>
-                <p className="text-3xl font-bold text-white">{kpis.totalDispatch.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Dispatch to Client (T)</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpis.totalDispatch.toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-indigo-600">
+            <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-4 border-l-4 border-indigo-600">
               <div className="bg-indigo-600 p-3 rounded-full">
                 <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 485 485" fill="none" stroke="currentColor" strokeWidth="20">
                   <path d="M435 315V45H290v90h-50v110h-20V140H55v105H0v195h485V315H435zM70 155h135v20H70v-20zm0 35h135v55H70v-55zm80 70v70h-45v-70h45zm90 165H15V260h75v85h75v-85h75v165zM305 60h115v75H305V60zm50 90v75h-35v-75h35zm-50 275h-65V150h50v90h65v-90h50v165H320v85zm150 0H335v-95h135v95z"/>
@@ -404,21 +462,21 @@ function ScrapDashboard({ sheetUrls, title, config }) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-400">Current Stock (T)</p>
-                <p className="text-3xl font-bold text-white">{kpis.currentStock.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Current Stock (T)</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpis.currentStock.toLocaleString()}</p>
               </div>
             </div>
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-3 bg-gray-800 p-6 rounded-lg shadow-xl">
-              <h3 className="text-lg font-semibold text-white mb-4">Scrap Generation (T) vs. Dispatch to Client (T)</h3>
+            <div className="lg:col-span-3 bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Scrap Generation (T) vs. Dispatch to Client (T)</h3>
               <div className="h-80">
                 <Line data={genVsDispatchData} options={{
                   interaction: { mode: 'index', intersect: false },
                   plugins: { tooltip: { mode: 'index' } },
                   scales: {
-                    y: { beginAtZero: true, grid: { color: '#374151' } },
+                    y: { beginAtZero: true, grid: { color: gridColor } },
                     x: { grid: { display: false } }
                   }
                 }} />
@@ -426,14 +484,14 @@ function ScrapDashboard({ sheetUrls, title, config }) {
             </div>
 
             {config.showUsageChart && (
-              <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-xl">
-                <h3 className="text-lg font-semibold text-white mb-4">Scrap Generation (T) vs. Total Scrap Usage (T)</h3>
+              <div className="lg:col-span-2 bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Scrap Generation (T) vs. Total Scrap Usage (T)</h3>
                 <div className="h-80">
-                  <Bar data={genVsUsageData} options={{
+                <Bar data={genVsUsageData} options={{
                     interaction: { mode: 'index', intersect: false },
                     plugins: { tooltip: { mode: 'index' } },
                     scales: {
-                      y: { beginAtZero: true, grid: { color: '#374151' } },
+                      y: { beginAtZero: true, grid: { color: gridColor } },
                       x: { grid: { display: false } }
                     }
                   }} />
@@ -442,8 +500,8 @@ function ScrapDashboard({ sheetUrls, title, config }) {
             )}
 
             {config.showDistributionChart && (
-              <div className={`${config.showUsageChart ? 'lg:col-span-1' : 'lg:col-span-3'} bg-gray-800 p-6 rounded-lg shadow-xl`}>
-                <h3 className="text-lg font-semibold text-white mb-4">Scrap Usage Distribution</h3>
+              <div className={`${config.showUsageChart ? 'lg:col-span-1' : 'lg:col-span-3'} bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl`}>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Scrap Usage Distribution</h3>
                 <div className="h-80">
                   <Doughnut data={distributionData} options={{
                     plugins: {
@@ -455,11 +513,11 @@ function ScrapDashboard({ sheetUrls, title, config }) {
             )}
           </section>
 
-          <section className="mt-6 bg-gray-800 p-6 rounded-lg shadow-xl">
-            <h3 className="text-lg font-semibold text-white mb-4">Data Table</h3>
+          <section className="mt-6 bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Table</h3>
             <div className="overflow-x-auto rounded-lg">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gray-700">
+              <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+                <thead className="bg-gray-200 dark:bg-gray-700">
                   <tr>
                     {Object.keys(config.headerMapping).map(key => {
                       const field = config.headerMapping[key];
@@ -482,7 +540,7 @@ function ScrapDashboard({ sheetUrls, title, config }) {
                         <th
                           key={field}
                           scope="col"
-                          className={`sortable-th px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${currentSort.column === field ? (currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`}
+                          className={`sortable-th px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider ${currentSort.column === field ? (currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`}
                           onClick={() => handleSort(field)}
                         >
                           <svg className="th-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -494,12 +552,12 @@ function ScrapDashboard({ sheetUrls, title, config }) {
                     })}
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-gray-50 dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {sortedData.length === 0 ? (
-                    <tr><td colSpan={Object.keys(config.headerMapping).length} className="text-center py-4 text-gray-400">No data found for the selected range.</td></tr>
+                    <tr><td colSpan={Object.keys(config.headerMapping).length} className="text-center py-4 text-gray-500 dark:text-gray-400">No data found for the selected range.</td></tr>
                   ) : (
                     sortedData.map((row, index) => (
-                      <tr key={index} className="hover:bg-gray-700">
+                      <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
                         {Object.keys(config.headerMapping).map(key => {
                           const field = config.headerMapping[key];
                           const value = row[field];
@@ -509,7 +567,7 @@ function ScrapDashboard({ sheetUrls, title, config }) {
                             return value.toLocaleString();
                           };
                           return (
-                            <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                               {formatValue(value, field)}
                             </td>
                           );
